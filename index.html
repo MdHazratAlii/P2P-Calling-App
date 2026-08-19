@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Call | One-Click P2P Video Calling</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PeerJS (Free Public Signaling via CDN) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        glass: 'rgba(255, 255, 255, 0.05)',
+                        glassBorder: 'rgba(255, 255, 255, 0.1)',
+                        accent: '#8b5cf6',
+                        accentHover: '#7c3aed',
+                    },
+                    animation: {
+                        'slide-in': 'slideIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideIn: {
+                            '0%': { transform: 'translateY(100%)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- PWA Manifest & Mobile Meta -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+
+    <!-- External styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="text-slate-100 h-screen w-screen overflow-hidden relative selection:bg-accent selection:text-white">
+
+    <div id="toast-container"></div>
+
+    <!-- ================= 1. ENTRY VIEW ================= -->
+    <section id="view-entry"
+        class="view-section active flex-col items-center justify-center h-full w-full fade-in z-10 relative">
+        <div class="glass-panel p-8 rounded-2xl w-11/12 max-w-md text-center">
+            <div class="mb-6 flex justify-center">
+                <div
+                    class="w-16 h-16 rounded-full bg-gradient-to-tr from-accent to-teal-400 flex items-center justify-center text-3xl shadow-lg shadow-accent/30">
+                    <i class="fa-solid fa-video"></i>
+                </div>
+            </div>
+            <h1
+                class="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-purple-300 to-teal-300">
+                P2P Call</h1>
+            <p class="text-slate-400 mb-8 text-sm">Instant 1-Click Peer-to-Peer Calling</p>
+
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Your Name</label>
+                    <input type="text" id="entry-name" placeholder="E.g. Alex"
+                        class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-accent transition-colors"
+                        autocomplete="off">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Room ID</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="entry-room" placeholder="Enter or Generate ID"
+                            class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-accent transition-colors uppercase"
+                            autocomplete="off">
+                        <button id="btn-gen-room" class="glass-btn px-4 rounded-lg text-slate-300 hover:text-white"
+                            title="Generate Random ID">
+                            <i class="fa-solid fa-dice"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 grid grid-cols-2 gap-4">
+                <button id="btn-create-call"
+                    class="bg-gradient-to-r from-accent to-purple-600 hover:from-accentHover hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transform transition hover:scale-105">
+                    Start Room
+                </button>
+                <button id="btn-join-call" class="glass-btn text-white font-semibold py-3 px-4 rounded-lg shadow-lg">
+                    Join Room
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 2. PRE-CALL DEVICE CHECK ================= -->
+    <section id="view-precall"
+        class="view-section flex-col items-center justify-center h-full w-full fade-in relative z-10">
+        <div class="glass-panel p-6 md:p-8 rounded-2xl w-11/12 max-w-4xl grid md:grid-cols-2 gap-8">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner">
+                <video id="precall-video" autoplay muted playsinline class="video-mirrored local-preview"></video>
+                <div id="precall-cam-off"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 hidden">
+                    <i class="fa-solid fa-video-slash text-3xl text-slate-400"></i>
+                    <span class="text-slate-400 text-sm mt-2">Camera Off</span>
+                </div>
+                <div
+                    class="absolute bottom-4 left-4 right-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm p-2 rounded-lg">
+                    <i class="fa-solid fa-microphone text-xs text-slate-300"></i>
+                    <canvas id="precall-audio-meter" width="200" height="8"
+                        class="flex-1 rounded-full bg-slate-700"></canvas>
+                </div>
+                <div class="absolute bottom-16 left-0 right-0 flex justify-center gap-4">
+                    <button id="btn-precall-mic"
+                        class="w-12 h-12 rounded-full glass-btn flex items-center justify-center text-xl bg-slate-800/80">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button id="btn-precall-cam"
+                        class="w-12 h-12 rounded-full glass-btn flex items-center justify-center text-xl bg-slate-800/80">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col justify-center">
+                <h2 class="text-2xl font-bold mb-1">Check Equipment</h2>
+                <p id="precall-room-display"
+                    class="text-accent mb-6 font-mono font-bold bg-accent/10 inline-block px-2 py-1 rounded w-max">Room:
+                    ---</p>
+
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <label
+                            class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Camera</label>
+                        <select id="select-cam"
+                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"></select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Microphone</label>
+                        <select id="select-mic"
+                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent"></select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="btn-precall-cancel"
+                        class="glass-btn flex-1 py-3 rounded-lg font-semibold text-slate-300 hover:text-white">Back</button>
+                    <button id="btn-precall-join"
+                        class="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 flex-1 py-3 rounded-lg font-semibold text-white shadow-lg">
+                        Enter Room <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 3. MAIN CALL VIEW ================= -->
+    <section id="view-call" class="view-section flex-col h-full w-full bg-slate-950 relative overflow-hidden">
+        <!-- Top Status Bar -->
+        <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20">
+            <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" id="status-dot"></div>
+                <span id="status-text" class="text-sm font-semibold text-slate-200">Connecting...</span>
+                <span class="w-px h-4 bg-slate-600 mx-1"></span>
+                <button id="btn-copy-link" class="text-xs text-accent hover:underline flex items-center gap-1">
+                    <i class="fa-regular fa-copy"></i> Copy Link
+                </button>
+            </div>
+            <button id="btn-toggle-sidebar" aria-label="Toggle participants"
+                class="glass-panel w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition">
+                <i class="fa-solid fa-users"></i>
+            </button>
+        </div>
+
+        <!-- Video Grid -->
+        <div id="video-grid"
+            class="flex-1 w-full h-full p-4 pt-16 pb-24 grid md:grid-cols-2 gap-4 place-content-center relative z-10">
+            <!-- Local Video -->
+            <div id="local-container"
+                class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border-2 border-transparent">
+                <video id="main-local-video" autoplay muted playsinline class="video-mirrored local-preview"></video>
+                <div id="local-cam-off-state"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-800 hidden">
+                    <i class="fa-solid fa-video-slash text-3xl text-slate-400"></i>
+                </div>
+                <div class="absolute bottom-4 left-4 glass-panel px-3 py-1.5 rounded-lg text-sm">
+                    You (<span id="local-name-disp"></span>)
+                </div>
+                <button id="ctrl-rotate" aria-label="Switch camera" title="Switch Front / Back"
+                    class="absolute top-3 right-3 w-10 h-10 rounded-full glass-btn flex items-center justify-center bg-slate-800/70 hover:bg-slate-700 z-20">
+                    <i class="fa-solid fa-camera-rotate text-slate-100"></i>
+                </button>
+            </div>
+
+            <!-- Remote Video -->
+            <div id="remote-container"
+                class="relative w-full h-full rounded-2xl overflow-hidden glass-panel border-2 border-transparent">
+                <video id="remote-video" autoplay playsinline></video>
+
+                <div id="waiting-state"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 z-10">
+                    <div class="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4">
+                    </div>
+                    <h3 class="text-lg font-semibold mb-1">Waiting for participant...</h3>
+                    <p class="text-slate-400 text-xs">Share the Room ID with a friend to start calling.</p>
+                </div>
+
+                <div class="absolute bottom-4 left-4 glass-panel px-3 py-1.5 rounded-lg text-sm">
+                    <span id="remote-name"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="absolute bottom-0 left-0 w-full p-4 flex justify-center z-20">
+            <div id="controls-bar" class="glass-panel px-6 py-3 rounded-2xl flex items-center gap-4">
+                <button id="ctrl-mic" aria-label="Toggle microphone"
+                    class="control-btn w-12 h-12 rounded-full bg-slate-700/80 hover:bg-slate-600 flex items-center justify-center">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <button id="ctrl-cam" aria-label="Toggle camera"
+                    class="control-btn w-12 h-12 rounded-full bg-slate-700/80 hover:bg-slate-600 flex items-center justify-center">
+                    <i class="fa-solid fa-video"></i>
+                </button>
+                <button id="ctrl-screen" aria-label="Share screen"
+                    class="control-btn w-12 h-12 rounded-full bg-slate-700/80 hover:bg-slate-600 flex items-center justify-center text-blue-400">
+                    <i class="fa-solid fa-desktop"></i>
+                </button>
+                <button id="ctrl-record" aria-label="Record call" title="Record Call"
+                    class="control-btn w-12 h-12 rounded-full bg-slate-700/80 hover:bg-slate-600 flex items-center justify-center">
+                    <i class="fa-solid fa-circle text-red-400"></i>
+                </button>
+                <button id="ctrl-leave" aria-label="Leave call"
+                    class="control-btn w-14 h-12 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+                    <i class="fa-solid fa-phone-slash text-white"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Participant Drawer -->
+        <div id="sidebar"
+            class="absolute top-0 right-0 h-full w-72 glass-panel border-l border-slate-700 transform translate-x-full transition-transform duration-300 z-30 p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold">Participants</h3>
+                <button id="btn-close-sidebar" aria-label="Close participants"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="participants-list" class="space-y-2"></div>
+        </div>
+    </section>
+
+    <!-- ================= 4. END SCREEN ================= -->
+    <section id="view-end"
+        class="view-section flex-col items-center justify-center h-full w-full bg-slate-900 fade-in z-50 absolute inset-0">
+        <div class="glass-panel p-8 rounded-2xl text-center max-w-md w-11/12 border-t-4 border-t-red-500">
+            <h2 class="text-2xl font-bold mb-2">Call Ended</h2>
+            <p class="text-slate-400 mb-6 text-sm">You have disconnected from the room.</p>
+            <button id="btn-home"
+                class="bg-accent hover:bg-accentHover w-full py-3 rounded-lg font-semibold text-white shadow-lg">Return
+                to Home</button>
+        </div>
+    </section>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
