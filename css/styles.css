@@ -1,0 +1,198 @@
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #064e3b 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.glass-panel {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.glass-btn {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+
+.glass-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+video {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.75rem;
+    background: #000;
+}
+
+/* Full view modal */
+#fullview-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    z-index: 60;
+    align-items: center;
+    justify-content: center;
+}
+
+#fullview-content {
+    position: relative;
+    width: 95%;
+    max-width: 1000px;
+    height: 85%;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+#fullview-content video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain
+}
+
+#fullview-close,
+#fullview-fullscreen {
+    position: absolute;
+    top: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+#fullview-close {
+    right: 12px
+}
+
+#fullview-fullscreen {
+    right: 60px
+}
+
+/* Use contain for local previews so the full camera is visible */
+.local-preview {
+    object-fit: contain;
+    background: #000;
+}
+
+.video-mirrored {
+    transform: scaleX(-1);
+}
+
+.view-section {
+    display: none;
+}
+
+.view-section.active {
+    display: flex;
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Active speaker highlight */
+.speaking {
+    box-shadow: 0 0 18px 6px rgba(34, 197, 94, 0.18);
+    transform: translateY(-4px);
+    transition: box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+/* Responsive video grid */
+#video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+/* Controls styling for touch devices */
+#controls-bar .control-btn {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+}
+
+@media (max-width: 640px) {
+
+    /* single column on narrow screens */
+    #video-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+
+    /* make controls wrap and bigger */
+    #controls-bar {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    #controls-bar .control-btn {
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        min-height: 56px;
+    }
+
+    /* sidebar becomes full overlay */
+    #sidebar {
+        width: 100%;
+        top: auto;
+        bottom: 0;
+        height: 48%;
+        transform: translateY(100%);
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    #sidebar.translate-x-full {
+        transform: translateY(100%);
+    }
+
+    #sidebar.show {
+        transform: translateY(0);
+    }
+
+    /* video containers reduce border radius on mobile */
+    .rounded-2xl {
+        border-radius: 0.75rem;
+    }
+}
